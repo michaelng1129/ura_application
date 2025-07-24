@@ -36,8 +36,8 @@ class _StoveStatusState extends State<StoveStatus> {
   Future<void> _fetchStoveStatus() async {
     try {
       final response = await http.get(
-        //Uri.parse('http://159.223.81.124:8000/stove_status/latest'),
-        Uri.parse('http://127.0.0.1:8000/stove_status/latest'),
+        Uri.parse('http://159.223.81.124:8000/stove_status/latest'),
+        //Uri.parse('http://127.0.0.1:8000/stove_status/latest'),
       );
       if (response.statusCode == 200) {
         final Map<String, dynamic> stoveData = jsonDecode(response.body);
