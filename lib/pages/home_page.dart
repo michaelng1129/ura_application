@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ura_application/widgets/time_display.dart';
 import 'package:ura_application/widgets/stove_status.dart';
 import 'package:ura_application/widgets/fu_zai_pet.dart';
+import 'package:ura_application/widgets/weather_dialog.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -10,7 +11,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F2ED),
-      body: const Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -18,6 +19,7 @@ class HomePage extends StatelessWidget {
             SizedBox(height: 20),
             _StoveCard(),
             SizedBox(height: 20),
+            WeatherDialog(),
             VirtualPet(),
           ],
         ),
@@ -34,7 +36,7 @@ class _StoveCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white, // 白底
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
           BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),

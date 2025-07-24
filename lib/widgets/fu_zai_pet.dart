@@ -15,15 +15,6 @@ class _VirtualPetState extends State<VirtualPet>
   late Animation<double> _blinkAnimation;
   PetExpression _currentExpression = PetExpression.normal;
 
-  String getDialogText() {
-    switch (_currentExpression) {
-      case PetExpression.happy:
-        return '今天看起來心情不錯！';
-      case PetExpression.normal:
-        return '我正在觀察中...';
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -78,58 +69,15 @@ class _VirtualPetState extends State<VirtualPet>
                   painter: PetPainter(
                     expression: _currentExpression,
                     blinkProgress: _blinkAnimation.value,
-                    leftHandAngle: 0,
-                    rightHandAngle: 400,
+                    leftHandAngle: 650,
+                    rightHandAngle: 0,
                   ),
                   size: const Size(200, 200),
                 );
               },
             ),
-
-            Positioned(
-              top: 50,
-              left: -100,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.black26),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(2, 2),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  getDialogText(),
-                  style: const TextStyle(fontSize: 14, color: Colors.black87),
-                ),
-              ),
-            ),
           ],
         ),
-
-        // const SizedBox(height: 12),
-        // Row(
-        //   mainAxisAlignment: MainAxisAlignment.center,
-        //   children: [
-        //     ElevatedButton(
-        //       onPressed: () => changeExpression(PetExpression.normal),
-        //       child: const Text('Normal'),
-        //     ),
-        //     const SizedBox(width: 10),
-        //     ElevatedButton(
-        //       onPressed: () => changeExpression(PetExpression.happy),
-        //       child: const Text('Happy'),
-        //     ),
-        //   ],
-        // ),
       ],
     );
   }
@@ -165,6 +113,18 @@ class PetPainter extends CustomPainter {
         width: 160,
         height: 130,
       ),
+      paint..style = PaintingStyle.fill,
+    );
+    paint
+      ..color = Colors.black26
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width / 2, size.height / 2),
+        width: 160,
+        height: 130,
+      ),
       paint,
     );
 
@@ -174,6 +134,19 @@ class PetPainter extends CustomPainter {
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(size.width / 2, size.height / 2 + faceOffsetY),
+        width: 120,
+        height: 75,
+      ),
+      paint..style = PaintingStyle.fill,
+    );
+    // Draw border for inner oval
+    paint
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width / 2, size.height / 2 + -15.0),
         width: 120,
         height: 75,
       ),
@@ -257,11 +230,19 @@ class PetPainter extends CustomPainter {
     final leftHandTop = Offset(size.width / 2 - 100, size.height / 2);
     canvas.translate(leftHandTop.dx, leftHandTop.dy);
     canvas.rotate(leftHandAngle); // radians
-    paint.color = Colors.white;
+    paint
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
     canvas.drawOval(
       Rect.fromLTWH(-10, 0, 20, 50), // 20x50 oval with top as origin
       paint,
     );
+    // Draw border for left hand
+    paint
+      ..color = Colors.black26
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawOval(Rect.fromLTWH(-10, 0, 20, 50), paint);
     canvas.restore();
 
     // Right hand
@@ -269,7 +250,15 @@ class PetPainter extends CustomPainter {
     final rightHandTop = Offset(size.width / 2 + 100, size.height / 2);
     canvas.translate(rightHandTop.dx, rightHandTop.dy);
     canvas.rotate(rightHandAngle); // radians
-    paint.color = Colors.white;
+    paint
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawOval(Rect.fromLTWH(-10, 0, 20, 50), paint);
+    // Draw border for right hand
+    paint
+      ..color = Colors.black26
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
     canvas.drawOval(Rect.fromLTWH(-10, 0, 20, 50), paint);
     canvas.restore();
 
@@ -312,11 +301,11 @@ class PetPainter extends CustomPainter {
 
     // Draw 福 character in yellow
     paint.style = PaintingStyle.fill;
-    paint.color = Colors.yellow;
+    paint.color = const Color(0xFFE5C165);
     TextPainter(
         text: const TextSpan(
           text: '福',
-          style: TextStyle(color: Colors.yellow, fontSize: 20),
+          style: TextStyle(color: Color(0xFFE5C165), fontSize: 20),
         ),
         textDirection: TextDirection.ltr,
       )

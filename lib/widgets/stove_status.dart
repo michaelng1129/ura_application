@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 class StoveStatus extends StatefulWidget {
   const StoveStatus({super.key});
@@ -20,11 +22,12 @@ class _StoveStatusState extends State<StoveStatus> {
   bool _abnormalFire = false;
   Timer? _pollTimer;
   bool _alertShown = false;
+  Uint8List? imageBytes;
 
   @override
   void initState() {
     super.initState();
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    _pollTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _fetchStoveStatus();
     });
     _fetchStoveStatus();
@@ -33,67 +36,73 @@ class _StoveStatusState extends State<StoveStatus> {
   Future<void> _fetchStoveStatus() async {
     try {
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/stove_status'),
+        //Uri.parse('http://159.223.81.124:8000/stove_status/latest'),
+        Uri.parse('http://127.0.0.1:8000/stove_status/latest'),
       );
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        if (data.isNotEmpty) {
-          final stoveData = data[0];
-          setState(() {
-            _leftStoveOn = stoveData['left_stove_status'] == 'frame_on';
-            _rightStoveOn = stoveData['right_stove_status'] == 'frame_on';
-            bool newAbnormalFire = stoveData['abnormal_fire'] ?? false;
+        final Map<String, dynamic> stoveData = jsonDecode(response.body);
 
-            if (newAbnormalFire && !_abnormalFire && !_alertShown) {
-              _abnormalFire = newAbnormalFire;
-              _showSlideToConfirmDialog();
-            } else {
-              _abnormalFire = newAbnormalFire;
-            }
-
-            if (_leftStoveOn) {
-              if (_leftStoveTimer == null || !_leftStoveTimer!.isActive) {
-                _leftStoveSeconds = 0;
-                _leftStoveTimer = Timer.periodic(const Duration(seconds: 1), (
-                  timer,
-                ) {
-                  setState(() {
-                    _leftStoveSeconds++;
-                  });
-                });
-              }
-            } else {
-              _leftStoveTimer?.cancel();
-              _leftStoveSeconds = 0;
-            }
-
-            if (_rightStoveOn) {
-              if (_rightStoveTimer == null || !_rightStoveTimer!.isActive) {
-                _rightStoveSeconds = 0;
-                _rightStoveTimer = Timer.periodic(const Duration(seconds: 1), (
-                  timer,
-                ) {
-                  setState(() {
-                    _rightStoveSeconds++;
-                  });
-                });
-              }
-            } else {
-              _rightStoveTimer?.cancel();
-              _rightStoveSeconds = 0;
-            }
-          });
+        if (stoveData['image'] != null && stoveData['image'].isNotEmpty) {
+          try {
+            imageBytes = base64Decode(stoveData['image']);
+          } catch (e) {
+            print('Error decoding Base64 image: $e');
+          }
         }
+
+        setState(() {
+          _leftStoveOn = stoveData['left_stove_status'] == 'frame_on';
+          _rightStoveOn = stoveData['right_stove_status'] == 'frame_on';
+          bool newAbnormalFire = stoveData['abnormal_fire'] ?? false;
+
+          if (newAbnormalFire && !_abnormalFire && !_alertShown) {
+            _abnormalFire = newAbnormalFire;
+            _showSlideToConfirmDialog(imageBytes);
+          } else {
+            _abnormalFire = newAbnormalFire;
+          }
+
+          if (_leftStoveOn) {
+            if (_leftStoveTimer == null || !_leftStoveTimer!.isActive) {
+              _leftStoveSeconds = 0;
+              _leftStoveTimer = Timer.periodic(const Duration(seconds: 1), (
+                timer,
+              ) {
+                setState(() {
+                  _leftStoveSeconds++;
+                });
+              });
+            }
+          } else {
+            _leftStoveTimer?.cancel();
+            _leftStoveSeconds = 0;
+          }
+
+          if (_rightStoveOn) {
+            if (_rightStoveTimer == null || !_rightStoveTimer!.isActive) {
+              _rightStoveSeconds = 0;
+              _rightStoveTimer = Timer.periodic(const Duration(seconds: 1), (
+                timer,
+              ) {
+                setState(() {
+                  _rightStoveSeconds++;
+                });
+              });
+            }
+          } else {
+            _rightStoveTimer?.cancel();
+            _rightStoveSeconds = 0;
+          }
+        });
       } else {
-        print('Failed to fetch stove status: ${response.statusCode}');
+        log('Failed to fetch stove status: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching stove status: $e');
+      log('Error fetching stove status: $e');
     }
   }
 
-  void _showSlideToConfirmDialog() {
-    _alertShown = true;
+  void _showSlideToConfirmDialog(Uint8List? imageBytes) {
     double sliderValue = 0;
 
     showDialog(
@@ -117,41 +126,71 @@ class _StoveStatusState extends State<StoveStatus> {
                   const SizedBox(height: 10),
                   const Text('請確認您已關閉爐火', style: TextStyle(fontSize: 16)),
                   const SizedBox(height: 20),
+                  // 顯示 Base64 圖片
+                  if (imageBytes != null)
+                    Image.memory(
+                      imageBytes,
+                      height: 150,
+                      width: 150,
+                      fit: BoxFit.cover,
+                      errorBuilder:
+                          (context, error, stackTrace) => const Text('無法加載圖片'),
+                    )
+                  else
+                    const Text('無圖片可用'),
+                  const SizedBox(height: 20),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Slider(
-                            value: sliderValue,
-                            min: 0,
-                            max: 100,
-                            divisions: 100,
-                            label: sliderValue == 100 ? '已確認' : '滑動確認',
-                            onChanged: (value) {
-                              setState(() {
-                                sliderValue = value;
-                              });
-                            },
-                            onChangeEnd: (value) {
-                              if (value == 100) {
-                                Navigator.of(context).pop();
-                                _alertShown = false;
-                              } else {
-                                setState(() {
-                                  sliderValue = 0;
-                                });
-                              }
-                            },
-                          ),
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        thumbColor: Colors.green,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 18.0,
                         ),
-                        if (sliderValue == 100)
-                          const Icon(Icons.check_circle, color: Colors.green),
-                      ],
+                        activeTrackColor: Colors.green[300],
+                        inactiveTrackColor: Colors.grey[400],
+                        trackHeight: 36.0,
+                        overlayColor: Color.fromRGBO(76, 175, 80, 0.2),
+                        activeTickMarkColor: Colors.green,
+                        inactiveTickMarkColor: Colors.grey,
+                        valueIndicatorColor: Colors.green,
+                        valueIndicatorTextStyle: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Slider(
+                              value: sliderValue,
+                              min: 0,
+                              max: 100,
+                              divisions: 100,
+                              label: sliderValue == 100 ? '已確認' : '滑動確認',
+                              onChanged: (value) {
+                                setState(() {
+                                  sliderValue = value;
+                                });
+                              },
+                              onChangeEnd: (value) {
+                                if (value == 100) {
+                                  Navigator.of(context).pop();
+                                  this.setState(() {
+                                    _alertShown = false;
+                                  });
+                                } else {
+                                  setState(() {
+                                    sliderValue = 0;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          if (sliderValue == 100)
+                            const Icon(Icons.check_circle, color: Colors.green),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -266,17 +305,6 @@ class _StoveStatusState extends State<StoveStatus> {
                 fit: BoxFit.contain,
               ),
             ),
-            if (_abnormalFire) ...[
-              const SizedBox(height: 4),
-              const Text(
-                '異常火焰',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
           ],
         ),
       ),
